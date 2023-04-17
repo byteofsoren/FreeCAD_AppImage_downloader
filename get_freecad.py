@@ -4,6 +4,7 @@ import re
 import stat
 import yaml
 import sys
+from tqdm import tqdm
 
 
 # Check if yaml file exists or not.
@@ -25,6 +26,7 @@ with open("config.yaml", 'r') as f:
 owner  = config["github_repo"]["owner"]
 repo  =  config["github_repo"]["repo"]
 my_github_api_token = config["config"]["my_github_api_token"]
+
 
 # Download directory
 save_path = config["config"]["AppImagePath"]
@@ -67,12 +69,24 @@ if newest_release:
     for asset in assets:
         asset_url = asset['url']
         asset_filename = asset['name']
-        asset_download_url = f'{asset_url}?access_token=TOKEN'
+
+        # Local directories
         download_path = os.path.join(save_path, asset_filename)
-        print(f'Downloading {asset_filename}...')
-        response = requests.get(asset_download_url)
+        absolute_path = os.path.abspath(download_path)
+
+        # Remote connection
+        headers = {'Authorization': f'token {my_github_api_token}'}
+        asset_metadata_response = requests.get(asset_url, headers=headers)
+        asset_metadata = asset_metadata_response.json()
+        asset_download_url = asset_metadata['browser_download_url']
+        response = requests.get(asset_download_url, headers=headers, stream=True)
+        total_size = int(response.headers.get('content-length', 0))
+
+        # Download the AppImage content.
         with open(download_path, 'wb') as f:
-            f.write(response.content)
+            for data in tqdm(response.iter_content(chunk_size=1024), total=total_size // 1024, unit='KB'):
+                f.write(data)
+
         print(f'{asset_filename} downloaded successfully.')
 
         # Set execution rights to the AppImage file
@@ -82,13 +96,14 @@ if newest_release:
         if config["config"]["symlink"]["use"]:
             app_name = re.sub(r'\.AppImage$', '', asset_filename)
             link_path = os.path.expanduser(config["config"]["symlink"]["path"])
+            print(f"{link_path=}")
             # Remove link if it existed
             if os.path.islink(link_path):
                 print("Unilnk old version")
                 os.unlink(link_path)
             # Create new link
             os.makedirs(os.path.dirname(link_path), exist_ok=True)
-            os.symlink(download_path, link_path)
+            os.symlink(absolute_path, link_path)
             print(f'Symbolic link created at {link_path}.')
         else:
             print(f"Symlink was not created because {config['config']['symlink']['use']=}")

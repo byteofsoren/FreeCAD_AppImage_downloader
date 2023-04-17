@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Ignore the config.yaml file
+config.yaml
+
+# Ignore the downloads directory
+downloads/

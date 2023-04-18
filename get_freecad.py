@@ -6,7 +6,6 @@ import yaml
 import sys
 from tqdm import tqdm
 
-
 # Check if yaml file exists or not.
 if not os.path.exists("config.yaml"):
     print("config.yaml did not exists.")
@@ -18,15 +17,10 @@ with open("config.yaml", 'r') as f:
     config = yaml.safe_load(f)
     pass
 
-
 # Define the repository owner and repository name
-# owner = 'realthunder'
-# repo = 'FreeCAD'
-# my_github_api_token='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'
 owner  = config["github_repo"]["owner"]
 repo  =  config["github_repo"]["repo"]
 my_github_api_token = config["config"]["my_github_api_token"]
-
 
 # Download directory
 save_path = config["config"]["AppImagePath"]
